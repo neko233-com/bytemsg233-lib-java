@@ -1,10 +1,11 @@
 package com.neko233.bytemsg233;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.function.Supplier;
 
 public final class ByteMsgPool<T extends ByteMsgResettable> {
-    private final ConcurrentLinkedQueue<T> items = new ConcurrentLinkedQueue<>();
+    private final Deque<T> items = new ArrayDeque<>();
     private final Supplier<T> factory;
 
     public ByteMsgPool(Supplier<T> factory) {
@@ -12,8 +13,7 @@ public final class ByteMsgPool<T extends ByteMsgResettable> {
     }
 
     public T acquire() {
-        T value = items.poll();
-        return value != null ? value : factory.get();
+        return items.isEmpty() ? factory.get() : items.pop();
     }
 
     public void release(T value) {
@@ -21,6 +21,6 @@ public final class ByteMsgPool<T extends ByteMsgResettable> {
             return;
         }
         value.reset();
-        items.offer(value);
+        items.push(value);
     }
 }
