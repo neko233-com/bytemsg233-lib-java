@@ -23,10 +23,40 @@ public final class ByteMsgWriter {
         out.write((int) value);
     }
 
-    public void writeString(String value) {
-        byte[] bytes = (value == null ? "" : value).getBytes(StandardCharsets.UTF_8);
+    public void writeFieldHeader(int tag, ByteMsgWireType wireType) {
+        if (tag <= 0) {
+            throw new IllegalArgumentException("Field tag must be positive.");
+        }
+        writeVarint(((long) tag << 3) | wireType.getValue());
+    }
+
+    public void writeBytes(byte[] value) {
+        byte[] bytes = value == null ? new byte[0] : value;
         writeVarint(bytes.length);
         out.writeBytes(bytes);
+    }
+
+    public void writeString(String value) {
+        byte[] bytes = (value == null ? "" : value).getBytes(StandardCharsets.UTF_8);
+        writeBytes(bytes);
+    }
+
+    public void writeFixed32(int value) {
+        out.write(value & 0xFF);
+        out.write((value >>> 8) & 0xFF);
+        out.write((value >>> 16) & 0xFF);
+        out.write((value >>> 24) & 0xFF);
+    }
+
+    public void writeFixed64(long value) {
+        out.write((int) (value & 0xFF));
+        out.write((int) ((value >>> 8) & 0xFF));
+        out.write((int) ((value >>> 16) & 0xFF));
+        out.write((int) ((value >>> 24) & 0xFF));
+        out.write((int) ((value >>> 32) & 0xFF));
+        out.write((int) ((value >>> 40) & 0xFF));
+        out.write((int) ((value >>> 48) & 0xFF));
+        out.write((int) ((value >>> 56) & 0xFF));
     }
 
     public void writePackedVarints(List<Long> values) {

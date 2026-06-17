@@ -49,6 +49,70 @@ public final class ByteMsgReader {
         return value;
     }
 
+    public byte[] readBytes() {
+        int length = Math.toIntExact(readVarint());
+        if (length > remaining()) {
+            throw new IllegalStateException("ByteMsg233 length exceeds remaining buffer.");
+        }
+        byte[] value = new byte[length];
+        System.arraycopy(data, offset, value, 0, length);
+        offset += length;
+        return value;
+    }
+
+    public int readFixed32() {
+        if (remaining() < 4) {
+            throw new IllegalStateException("ByteMsg233 fixed32 exceeds remaining buffer.");
+        }
+        int value = (data[offset] & 0xFF)
+            | ((data[offset + 1] & 0xFF) << 8)
+            | ((data[offset + 2] & 0xFF) << 16)
+            | ((data[offset + 3] & 0xFF) << 24);
+        offset += 4;
+        return value;
+    }
+
+    public long readFixed64() {
+        if (remaining() < 8) {
+            throw new IllegalStateException("ByteMsg233 fixed64 exceeds remaining buffer.");
+        }
+        long value = ((long) data[offset] & 0xFF)
+            | (((long) data[offset + 1] & 0xFF) << 8)
+            | (((long) data[offset + 2] & 0xFF) << 16)
+            | (((long) data[offset + 3] & 0xFF) << 24)
+            | (((long) data[offset + 4] & 0xFF) << 32)
+            | (((long) data[offset + 5] & 0xFF) << 40)
+            | (((long) data[offset + 6] & 0xFF) << 48)
+            | (((long) data[offset + 7] & 0xFF) << 56);
+        offset += 8;
+        return value;
+    }
+
+    public ByteMsgFieldHeader readFieldHeader() {
+        long raw = readVarint();
+        return new ByteMsgFieldHeader((int) (raw >>> 3), ByteMsgWireType.fromValue((int) (raw & 0x7)));
+    }
+
+    public void skipField(ByteMsgWireType wireType) {
+        switch (wireType) {
+            case VARINT:
+                readVarint();
+                return;
+            case FIXED64:
+                readFixed64();
+                return;
+            case BYTES:
+            case LENGTH_DELIMITED:
+                readBytes();
+                return;
+            case FIXED32:
+                readFixed32();
+                return;
+            default:
+                throw new IllegalArgumentException("Unsupported ByteMsg233 wire type: " + wireType);
+        }
+    }
+
     public List<Long> readPackedVarints(List<Long> values) {
         int count = Math.toIntExact(readVarint());
         List<Long> out = values == null ? new ArrayList<>(count) : values;
